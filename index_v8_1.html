@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Almoxarifado V8 WMS</title>
+<style>
+:root{--bg:#f4f7fb;--card:#fff;--primary:#173b70;--accent:#0e9f6e;--text:#172033;--muted:#6b7280}
+*{box-sizing:border-box}body{margin:0;font-family:Arial,sans-serif;background:var(--bg);color:var(--text)}
+header{background:linear-gradient(120deg,#102b54,#1d5c9d);color:#fff;padding:18px 22px;display:flex;justify-content:space-between;align-items:center}
+header h1{margin:0;font-size:21px}header small{opacity:.8}
+.layout{display:flex;min-height:calc(100vh - 72px)}nav{width:230px;background:#102b54;color:#fff;padding:12px}
+nav button{display:block;width:100%;border:0;background:transparent;color:#fff;text-align:left;padding:13px;border-radius:8px;margin:3px 0;cursor:pointer}
+nav button:hover,nav button.active{background:#24558e}
+main{padding:22px;flex:1;max-width:1400px;margin:auto}.page{display:none}.page.active{display:block}
+.cards{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}.card,.panel{background:var(--card);border-radius:14px;padding:18px;box-shadow:0 3px 15px #17203312}
+.card b{font-size:27px;display:block;margin-top:8px}.muted{color:var(--muted);font-size:13px}
+.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}.field{display:flex;flex-direction:column;gap:5px}.field label{font-size:12px;font-weight:bold;color:#475569}.field input,.field select,.field textarea{padding:10px;border:1px solid #d7dee8;border-radius:8px;background:#fff}.field textarea{min-height:70px}
+button.primary{background:var(--accent);color:#fff;border:0;padding:11px 16px;border-radius:8px;cursor:pointer;font-weight:bold}button.secondary{background:#e8eef7;border:0;padding:11px 16px;border-radius:8px;cursor:pointer}
+.actions{display:flex;gap:10px;margin:15px 0;flex-wrap:wrap}table{width:100%;border-collapse:collapse;margin-top:12px;background:#fff}th,td{padding:10px;border-bottom:1px solid #e5e7eb;text-align:left;font-size:13px}th{background:#eef4fb}
+.notice{padding:12px;border-radius:8px;background:#fff7d6;margin-bottom:15px}
+@media(max-width:800px){nav{width:70px}nav button{font-size:0;text-align:center}nav button:before{content:"•";font-size:22px}.cards,.grid{grid-template-columns:1fr 1fr}main{padding:12px}}
+</style></head>
+<body>
+<header><div><h1>Almoxarifado V8 • WMS Profissional</h1><small>Controle integrado de entradas, saídas, estoque, endereçamento e inventário</small></div><span id="status">Conectando...</span><span id="clock" style="margin-left:14px;font-size:12px;opacity:.9"></span></header>
+<div class="layout"><nav>
+<button class="active" onclick="show('dashboard',this)">📊 Dashboard</button>
+<button onclick="show('mov',this)">↔ Movimentação</button>
+<button onclick="show('estoque',this)">📦 Estoque</button>
+<button onclick="show('produtos',this)">🏷 Produtos</button>
+<button onclick="show('inventario',this)">🔎 Inventário</button>
+<button onclick="show('enderecos',this)">📍 Endereçamento</button>
+<button onclick="show('relatorios',this)">📈 Relatórios</button>
+</nav><main>
+<section id="dashboard" class="page active"><h2>Visão geral</h2><div class="cards">
+<div class="card"><span class="muted">Movimentações</span><b id="cMov">0</b></div><div class="card"><span class="muted">Produtos movimentados</span><b id="cProd">0</b></div><div class="card"><span class="muted">Total de entradas</span><b id="cEnt">0</b></div><div class="card"><span class="muted">Total de saídas</span><b id="cSai">0</b></div></div><div class="panel" style="margin-top:16px"><h3>Recursos V8</h3><p>Cadastro automático por código, setor automático pela linha de produção, turno automático pelo separador, leitor de código de barras/QR pelo campo de código, inventário, endereçamento e exportação CSV.</p></div></section>
+
+<section id="mov" class="page"><h2>Registrar movimentação</h2><div class="notice">A data e hora são registradas automaticamente pelo servidor. Digite ou leia o código para preencher descrição e unidade quando o produto estiver cadastrado. <b>Campos obrigatórios:</b> código, tipo e quantidade.</div>
+<div class="panel"><div class="grid">
+<div class="field"><label>Separador</label><input id="separador" onblur="autoTurno()"></div><div class="field"><label>Turno</label><input id="turno" readonly></div>
+<div class="field"><label>OP</label><input id="op"></div><div class="field"><label>Item</label><input id="item"></div>
+<div class="field"><label>Linha / Produção</label><input id="linha" onblur="autoSetor()"></div><div class="field"><label>Setor</label><input id="setor" readonly></div>
+<div class="field"><label>Código / Leitor</label><input id="codigo" oninput="buscarProduto()" onkeydown="if(event.key==='Enter'){event.preventDefault();buscarProduto()}"></div><div class="field"><label>Descrição do SKU</label><input id="descricao"></div>
+<div class="field"><label>Unidade</label><input id="und"></div><div class="field"><label>Endereço</label><input id="endereco"></div>
+<div class="field"><label>Rua</label><input id="rua"></div><div class="field"><label>Tipo</label><select id="tipo"><option>ENTRADA</option><option>SAÍDA</option><option>REPOSIÇÃO</option><option>AJUSTE</option></select></div>
+<div class="field"><label>Entrada</label><input id="entrada" type="number" step="0.001" value="0"></div><div class="field"><label>Saída</label><input id="saida" type="number" step="0.001" value="0"></div>
+<div class="field"><label>NF</label><input id="nf"></div><div class="field"><label>Validade</label><input id="validade" type="date"></div>
+<div class="field"><label>Lote interno</label><input id="lote_interno"></div><div class="field"><label>Lote fornecedor</label><input id="lote_fornecedor"></div>
+<div class="field"><label>Falta recebimento</label><input id="falta" type="number" value="0"></div><div class="field"><label>Sobra recebimento</label><input id="sobra" type="number" value="0"></div>
+<div class="field" style="grid-column:span 2"><label>Observação</label><textarea id="obs"></textarea></div><div class="field" style="grid-column:span 2"><label>Comentário</label><textarea id="comentario"></textarea></div>
+</div><div class="actions"><button class="primary" onclick="salvarMov()">Salvar movimentação</button><button class="secondary" onclick="limpar()">Limpar</button><button class="secondary" onclick="dashboard()">Atualizar indicadores</button></div></div></section>
+
+<section id="estoque" class="page"><h2>Estoque por produto e endereço</h2><div class="actions"><button class="secondary" onclick="carregarEstoque()">Atualizar</button><button class="primary" onclick="exportar('estoque')">Exportar CSV</button></div><div class="panel"><table><thead><tr><th>Código</th><th>Descrição</th><th>Unidade</th><th>Saldo</th><th>Endereço</th></tr></thead><tbody id="tabEstoque"></tbody></table></div></section>
+
+<section id="produtos" class="page"><h2>Cadastro de produtos</h2><div class="panel"><div class="grid"><div class="field"><label>Código</label><input id="pcodigo"></div><div class="field"><label>Descrição</label><input id="pdescricao"></div><div class="field"><label>Unidade</label><input id="punidade"></div><div class="field"><label>Estoque mínimo</label><input id="pmin" type="number" value="0"></div></div><div class="actions"><button class="primary" onclick="salvarProduto()">Salvar produto</button></div></div></section>
+
+<section id="inventario" class="page"><h2>Inventário</h2><div class="panel"><div class="grid"><div class="field"><label>Código</label><input id="icodigo"></div><div class="field"><label>Endereço</label><input id="iendereco"></div><div class="field"><label>Estoque sistema</label><input id="isistema" type="number"></div><div class="field"><label>Estoque contado</label><input id="icontado" type="number"></div><div class="field"><label>Responsável</label><input id="iresp"></div><div class="field"><label>Observação</label><input id="iobs"></div></div><div class="actions"><button class="primary" onclick="salvarInventario()">Registrar contagem</button></div></div></section>
+
+<section id="enderecos" class="page"><h2>Endereçamento</h2><div class="panel"><p>Estrutura preparada para cadastro de rua, endereço, capacidade e vínculo com o estoque. A tabela será ativada após a configuração do banco compartilhado.</p></div></section>
+<section id="relatorios" class="page"><h2>Relatórios</h2><div class="panel"><button class="primary" onclick="exportar('movimentacoes')">Exportar movimentações CSV</button><p class="muted">O arquivo CSV pode ser aberto no Excel.</p></div></section>
+</main></div>
+<script>
+const $=id=>document.getElementById(id);
+async function api(url,opt){const r=await fetch(url,opt);const d=await r.json();if(!r.ok)throw Error(d.error||'Erro');return d}
+function show(id,btn){document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));$(id).classList.add('active');document.querySelectorAll('nav button').forEach(x=>x.classList.remove('active'));btn.classList.add('active');if(id==='dashboard')dashboard();if(id==='estoque')carregarEstoque()}
+async function status(){try{let d=await api('/api/status');$('status').textContent=d.database?'● Banco conectado':'● Interface pronta';$('status').style.color=d.database?'#9ff3c8':'#ffe08a'}catch(e){$('status').textContent='Offline'}}
+async function dashboard(){try{let d=await api('/api/dashboard');$('cMov').textContent=d.movimentacoes;$('cProd').textContent=d.produtos;$('cEnt').textContent=Number(d.entradas).toFixed(2);$('cSai').textContent=Number(d.saidas).toFixed(2)}catch(e){}}
+let buscaTimer;
+async function buscarProduto(){
+  clearTimeout(buscaTimer);
+  buscaTimer=setTimeout(async()=>{
+    const codigo=$('codigo').value.trim();
+    if(!codigo){$('descricao').value='';$('und').value='';return}
+    try{
+      let d=await api('/api/produtos/'+encodeURIComponent(codigo));
+      $('descricao').value=d.descricao||'';
+      $('und').value=d.unidade||'';
+    }catch(e){}
+  },250);
+}
+function autoTurno(){const v=$('separador').value.toLowerCase();$('turno').value=v.includes('noite')?'NOITE':v.includes('tarde')?'TARDE':'DIURNO'}
+function autoSetor(){const v=$('linha').value.toLowerCase();$('setor').value=v.includes('envase')?'PRODUÇÃO':v.includes('expedi')?'EXPEDIÇÃO':v.includes('receb')?'RECEBIMENTO':''}
+async function salvarMov(){
+  const codigo=$('codigo').value.trim();
+  const entrada=Number($('entrada').value||0);
+  const saida=Number($('saida').value||0);
+  if(!codigo){alert('Informe o código do produto.');$('codigo').focus();return}
+  if(entrada<=0 && saida<=0){alert('Informe uma quantidade de entrada ou saída.');return}
+  if(entrada>0 && saida>0){alert('Informe entrada ou saída, não as duas ao mesmo tempo.');return}
+  let b={separador:$('separador').value,turno:$('turno').value,op:$('op').value,item:$('item').value,linha_producao:$('linha').value,setor:$('setor').value,codigo:$('codigo').value,descricao_sku:$('descricao').value,und:$('und').value,endereco:$('endereco').value,rua:$('rua').value,tipo_movimentacao:$('tipo').value,entrada:$('entrada').value,saida:$('saida').value,nf:$('nf').value,validade:$('validade').value,lote_interno:$('lote_interno').value,lote_fornecedor:$('lote_fornecedor').value,falta_recebimento:$('falta').value,sobra_recebimento:$('sobra').value,obs:$('obs').value,comentario:$('comentario').value};try{await api('/api/movimentacoes',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b)});alert('Movimentação registrada com sucesso');limpar();dashboard()}catch(e){alert(e.message)}}
+function limpar(){document.querySelectorAll('#mov input,#mov textarea').forEach(x=>{if(!x.readOnly)x.value=''});$('entrada').value=0;$('saida').value=0}
+async function salvarProduto(){try{await api('/api/produtos',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({codigo:$('pcodigo').value,descricao:$('pdescricao').value,unidade:$('punidade').value,estoque_minimo:$('pmin').value})});alert('Produto salvo')}catch(e){alert(e.message)}}
+async function salvarInventario(){try{await api('/api/inventarios',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({codigo:$('icodigo').value,endereco:$('iendereco').value,estoque_sistema:$('isistema').value,estoque_contado:$('icontado').value,responsavel:$('iresp').value,observacao:$('iobs').value})});alert('Inventário registrado')}catch(e){alert(e.message)}}
+async function carregarEstoque(){try{let d=await api('/api/estoque');$('tabEstoque').innerHTML=d.map(x=>`<tr><td>${x.codigo}</td><td>${x.descricao||''}</td><td>${x.unidade||''}</td><td>${Number(x.saldo).toFixed(3)}</td><td>${x.endereco||''}</td></tr>`).join('')}catch(e){$('tabEstoque').innerHTML='<tr><td colspan="5">Configure o banco de dados para visualizar o estoque compartilhado.</td></tr>'}}
+async function exportar(tipo){let url=tipo==='estoque'?'/api/estoque':'/api/movimentacoes';try{let d=await api(url);if(!d.length)return alert('Sem dados');let keys=Object.keys(d[0]);let csv=[keys.join(';'),...d.map(r=>keys.map(k=>`"${String(r[k]??'').replaceAll('"','""')}"`).join(';'))].join('\\n');let a=document.createElement('a');a.href=URL.createObjectURL(new Blob(['\\ufeff'+csv],{type:'text/csv'}));a.download=tipo+'.csv';a.click()}catch(e){alert(e.message)}}
+function atualizarRelogio(){
+  const agora=new Date();
+  $('clock').textContent=agora.toLocaleString('pt-BR');
+}
+setInterval(atualizarRelogio,1000);
+atualizarRelogio();
+status();dashboard();
+</script></body></html>
